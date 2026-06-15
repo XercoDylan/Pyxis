@@ -50,11 +50,16 @@ app.use(statsRouter);
 
 // Serve client build in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../client/dist')));
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api') && !req.path.startsWith('/auth')) {
-      res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
+  const clientDistPath = path.resolve(__dirname, '../../client/dist');
+  app.use(express.static(clientDistPath));
+  
+  // SPA fallback — serve index.html for non-API routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/auth')) {
+      next();
+      return;
     }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 }
 
