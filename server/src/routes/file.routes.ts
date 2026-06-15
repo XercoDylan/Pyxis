@@ -12,7 +12,7 @@
 
 import { Router, type Request, type Response, type NextFunction } from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { listFiles, getFileById, generateUploadUrl, confirmUpload, validateBatchSize } from '../services/file.service.js';
+import { listFiles, getFileById, generateUploadUrl, confirmUpload } from '../services/file.service.js';
 import { generatePresignedDownloadUrl, generatePresignedViewUrl } from '../config/s3.js';
 import { streamCategoryZip, streamCourseZip } from '../services/zip.service.js';
 

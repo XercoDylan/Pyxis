@@ -9,7 +9,6 @@
  */
 
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import { randomUUID } from 'crypto';
 import { requireAuth } from '../middleware/auth.js';
 import { adminOnly } from '../middleware/adminOnly.js';
 import { prisma } from '../config/database.js';
