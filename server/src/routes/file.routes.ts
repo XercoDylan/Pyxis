@@ -11,10 +11,17 @@
  */
 
 import { Router, type Request, type Response, type NextFunction } from 'express';
+import multer from 'multer';
+import { randomUUID } from 'crypto';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { requireAuth } from '../middleware/auth.js';
-import { listFiles, getFileById, generateUploadUrl, confirmUpload } from '../services/file.service.js';
-import { generatePresignedDownloadUrl, generatePresignedViewUrl } from '../config/s3.js';
+import { listFiles, getFileById, confirmUpload } from '../services/file.service.js';
+import { generatePresignedDownloadUrl, generatePresignedViewUrl, s3Client, BUCKET_NAME } from '../config/s3.js';
 import { streamCategoryZip, streamCourseZip } from '../services/zip.service.js';
+import { isValidFileSize, isValidBatchSize } from '../validators/index.js';
+import { AppError, ErrorCode } from '../types/index.js';
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 52_428_800 } });
 
 export const fileRouter = Router();
 
@@ -61,15 +68,71 @@ fileRouter.get(
 );
 
 /**
- * POST /api/files/upload-url
- * Generates a presigned S3 PUT URL for file upload.
- * Body: { filename, contentType, fileSize, categoryId }
+ * POST /api/files/upload
+ * Direct file upload — server receives file and uploads to S3.
+ * Multipart form: file (the file), categoryId (form field)
+ */
+fileRouter.post(
+  '/api/files/upload',
+  upload.array('files', 10),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { categoryId } = req.body;
+      const files = req.files as Express.Multer.File[];
+
+      if (!files || files.length === 0) {
+        throw new AppError(ErrorCode.VALIDATION_ERROR, 422, 'No files provided');
+      }
+
+      if (!isValidBatchSize(files.length)) {
+        throw new AppError(ErrorCode.BATCH_TOO_LARGE, 422, 'Maximum 10 files per upload');
+      }
+
+      const uploadedById = req.sessionData!.memberId;
+      const results: any[] = [];
+
+      for (const file of files) {
+        if (!isValidFileSize(file.size)) {
+          results.push({ filename: file.originalname, error: 'File exceeds 50 MB limit' });
+          continue;
+        }
+
+        const fileId = randomUUID();
+        const s3Key = `uploads/${categoryId}/${fileId}/${file.originalname}`;
+
+        // Upload to S3 server-side
+        await s3Client.send(new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: s3Key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        }));
+
+        // Create database record
+        const record = await confirmUpload(
+          fileId, file.originalname, s3Key,
+          file.mimetype, file.size, categoryId, uploadedById
+        );
+
+        results.push(record);
+      }
+
+      res.status(201).json({ files: results });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
+ * POST /api/files/upload-url (legacy — kept for compatibility)
  */
 fileRouter.post(
   '/api/files/upload-url',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { filename, contentType, fileSize, categoryId } = req.body;
+      const { generateUploadUrl } = await import('../services/file.service.js');
       const result = await generateUploadUrl(filename, contentType, fileSize, categoryId);
       res.json(result);
     } catch (err) {
