@@ -19,6 +19,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Serve client static files in production FIRST (before any API middleware)
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(clientDistPath));
+}
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -48,26 +54,19 @@ app.use(fileRouter);
 // Stats and member routes
 app.use(statsRouter);
 
-// Serve client build in production
+// Error handler
+app.use(errorHandler);
+
+// SPA fallback — serve index.html for any unmatched non-API route
 if (process.env.NODE_ENV === 'production') {
-  const clientDistPath = path.resolve(__dirname, '../../client/dist');
-  app.use(express.static(clientDistPath));
-  
-  // SPA fallback — serve index.html for non-API routes
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/auth')) {
-      next();
-      return;
-    }
+  app.get('*', (_req, res) => {
     res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 }
 
-// Error handler (must be last)
-app.use(errorHandler);
-
 app.listen(PORT, () => {
   console.log(`Pyxis server running on port ${PORT}`);
+  console.log(`Static files: ${clientDistPath}`);
 });
 
 export default app;
