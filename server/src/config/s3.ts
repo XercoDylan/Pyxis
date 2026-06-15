@@ -37,6 +37,7 @@ export const PRESIGNED_DOWNLOAD_EXPIRY = 3600; // 1 hour
 
 /**
  * Generate a presigned PUT URL for file uploads.
+ * Disables checksums to prevent browser CORS issues with extra headers.
  */
 export async function generatePresignedUploadUrl(
   key: string,
@@ -49,7 +50,11 @@ export async function generatePresignedUploadUrl(
     ContentType: contentType,
   });
 
-  return getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_UPLOAD_EXPIRY });
+  return getSignedUrl(s3Client, command, {
+    expiresIn: PRESIGNED_UPLOAD_EXPIRY,
+    unhoistableHeaders: new Set(['x-amz-checksum-crc32']),
+    signableHeaders: new Set(['host', 'content-type']),
+  });
 }
 
 /**
