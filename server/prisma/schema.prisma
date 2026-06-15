@@ -1,0 +1,71 @@
+// Pyxis Course Materials Platform - Prisma Schema
+// Models: Member, AccessListEntry, Course, Category, File
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Member {
+  id          String   @id @default(uuid())
+  name        String
+  major       String   @default("")
+  grade       String   @default("")
+  token       String   @unique
+  isAdmin     Boolean  @default(false) @map("is_admin")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  lastLoginAt DateTime @updatedAt @map("last_login_at")
+
+  uploadedFiles      File[]
+  createdCourses     Course[]
+
+  @@map("members")
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  courseNumber String   @unique @map("course_number")
+  courseName  String   @map("course_name")
+  createdById String   @map("created_by")
+  createdBy   Member   @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  categories Category[]
+
+  @@map("courses")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  courseId   String   @map("course_id")
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  name      String
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  files File[]
+
+  @@unique([courseId, name])
+  @@map("categories")
+}
+
+model File {
+  id           String   @id @default(uuid())
+  categoryId   String   @map("category_id")
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  uploadedById String   @map("uploaded_by")
+  uploadedBy   Member   @relation(fields: [uploadedById], references: [id])
+  filename     String
+  s3Key        String   @unique @map("s3_key")
+  contentType  String   @map("content_type")
+  fileSize     BigInt   @map("file_size")
+  uploadedAt   DateTime @default(now()) @map("uploaded_at")
+
+  @@index([categoryId, uploadedAt(sort: Desc)])
+  @@index([uploadedById])
+  @@map("files")
+}
