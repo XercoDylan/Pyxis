@@ -41,13 +41,12 @@ export const PRESIGNED_DOWNLOAD_EXPIRY = 3600; // 1 hour
 export async function generatePresignedUploadUrl(
   key: string,
   contentType: string,
-  contentLength: number
+  _contentLength: number
 ): Promise<string> {
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
     ContentType: contentType,
-    ContentLength: contentLength,
   });
 
   return getSignedUrl(s3Client, command, { expiresIn: PRESIGNED_UPLOAD_EXPIRY });
