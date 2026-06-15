@@ -1,24 +1,15 @@
 -- CreateTable
 CREATE TABLE "members" (
     "id" TEXT NOT NULL,
-    "kerberos" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "email" TEXT NOT NULL,
+    "major" TEXT NOT NULL DEFAULT '',
+    "grade" TEXT NOT NULL DEFAULT '',
+    "token" TEXT NOT NULL,
     "is_admin" BOOLEAN NOT NULL DEFAULT false,
     "joined_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "last_login_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "members_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "access_list" (
-    "id" TEXT NOT NULL,
-    "kerberos" TEXT NOT NULL,
-    "added_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "added_by" TEXT,
-
-    CONSTRAINT "access_list_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -58,10 +49,7 @@ CREATE TABLE "files" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "members_kerberos_key" ON "members"("kerberos");
-
--- CreateIndex
-CREATE UNIQUE INDEX "access_list_kerberos_key" ON "access_list"("kerberos");
+CREATE UNIQUE INDEX "members_token_key" ON "members"("token");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "courses_course_number_key" ON "courses"("course_number");
@@ -77,9 +65,6 @@ CREATE INDEX "files_category_id_uploaded_at_idx" ON "files"("category_id", "uplo
 
 -- CreateIndex
 CREATE INDEX "files_uploaded_by_idx" ON "files"("uploaded_by");
-
--- AddForeignKey
-ALTER TABLE "access_list" ADD CONSTRAINT "access_list_added_by_fkey" FOREIGN KEY ("added_by") REFERENCES "members"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "courses" ADD CONSTRAINT "courses_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "members"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
