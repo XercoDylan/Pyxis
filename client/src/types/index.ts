@@ -10,9 +10,22 @@ export interface Course {
   createdAt: string;
 }
 
-export interface Category {
+export interface YearFolder {
   id: string;
   courseId: string;
+  year: number;
+  isComplete: boolean;
+  createdAt: string;
+  fileCount: number;  // Aggregated from API response
+}
+
+export interface YearFolderWithCategories extends YearFolder {
+  categories: Category[];
+}
+
+export interface Category {
+  id: string;
+  yearFolderId: string;
   name: string;
   isDefault: boolean;
   createdAt: string;

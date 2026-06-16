@@ -70,7 +70,11 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
         select: {
           category: {
             select: {
-              courseId: true,
+              yearFolder: {
+                select: {
+                  courseId: true,
+                },
+              },
             },
           },
         },
@@ -82,7 +86,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const entries: LeaderboardEntry[] = members.map((member) => {
     const totalFiles = member.uploadedFiles.length;
     const distinctCourseIds = new Set(
-      member.uploadedFiles.map((f) => f.category.courseId)
+      member.uploadedFiles.map((f) => f.category.yearFolder.courseId)
     );
     return {
       memberId: member.id,
@@ -120,10 +124,14 @@ export async function getMemberContributions(
       category: {
         select: {
           name: true,
-          course: {
+          yearFolder: {
             select: {
-              courseNumber: true,
-              courseName: true,
+              course: {
+                select: {
+                  courseNumber: true,
+                  courseName: true,
+                },
+              },
             },
           },
         },
@@ -136,7 +144,7 @@ export async function getMemberContributions(
   const courseMap = new Map<string, CourseContribution>();
 
   for (const file of files) {
-    const { courseNumber, courseName } = file.category.course;
+    const { courseNumber, courseName } = file.category.yearFolder.course;
 
     if (!courseMap.has(courseNumber)) {
       courseMap.set(courseNumber, {

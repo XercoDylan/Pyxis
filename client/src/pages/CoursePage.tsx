@@ -1,29 +1,36 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { getCourse, CourseWithCategories } from '../api/courses';
+import { getCourse } from '../api/courses';
+import { getYearFolders } from '../api/yearFolders';
 import { downloadCourseZip } from '../api/files';
-import CategoryList from '../components/categories/CategoryList';
-import AddCategoryModal from '../components/categories/AddCategoryModal';
+import { Course, YearFolder } from '../types';
+import YearFolderGrid from '../components/years/YearFolderGrid';
+import AddYearModal from '../components/years/AddYearModal';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ErrorMessage from '../components/shared/ErrorMessage';
 import EmptyState from '../components/shared/EmptyState';
 
 export default function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
-  const [course, setCourse] = useState<CourseWithCategories | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
+  const [yearFolders, setYearFolders] = useState<YearFolder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+  const [isAddYearOpen, setIsAddYearOpen] = useState(false);
 
-  const fetchCourse = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!courseId) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await getCourse(courseId);
-      setCourse(data);
+      const [courseData, yearFoldersData] = await Promise.all([
+        getCourse(courseId),
+        getYearFolders(courseId),
+      ]);
+      setCourse(courseData);
+      setYearFolders(yearFoldersData);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load course details'
@@ -34,12 +41,12 @@ export default function CoursePage() {
   }, [courseId]);
 
   useEffect(() => {
-    fetchCourse();
-  }, [fetchCourse]);
+    fetchData();
+  }, [fetchData]);
 
-  const handleCategoryAdded = () => {
-    setIsAddCategoryOpen(false);
-    fetchCourse();
+  const handleYearAdded = () => {
+    setIsAddYearOpen(false);
+    fetchData();
   };
 
   if (isLoading) {
@@ -53,7 +60,7 @@ export default function CoursePage() {
   if (error) {
     return (
       <div className="py-8">
-        <ErrorMessage message={error} onRetry={fetchCourse} />
+        <ErrorMessage message={error} onRetry={fetchData} />
       </div>
     );
   }
@@ -65,10 +72,6 @@ export default function CoursePage() {
       </div>
     );
   }
-
-  const sortedCategories = [...course.categories].sort((a, b) =>
-    a.name.localeCompare(b.name)
-  );
 
   return (
     <div className="space-y-6">
@@ -105,7 +108,7 @@ export default function CoursePage() {
           </a>
 
           <button
-            onClick={() => setIsAddCategoryOpen(true)}
+            onClick={() => setIsAddYearOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2 bg-gold-600 text-neutral-100 rounded-md hover:bg-gold-500 transition-colors text-sm font-medium"
           >
             <svg
@@ -122,33 +125,30 @@ export default function CoursePage() {
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            Add Category
+            Add Year
           </button>
         </div>
       </div>
 
-      {/* Category list */}
-      {sortedCategories.length === 0 ? (
+      {/* Year folder grid */}
+      {yearFolders.length === 0 ? (
         <EmptyState
-          message="No categories found for this course."
+          message="No year folders found for this course."
           action={{
-            label: 'Add Category',
-            onClick: () => setIsAddCategoryOpen(true),
+            label: 'Add Year',
+            onClick: () => setIsAddYearOpen(true),
           }}
         />
       ) : (
-        <CategoryList
-          categories={sortedCategories}
-          courseId={course.id}
-        />
+        <YearFolderGrid yearFolders={yearFolders} courseId={course.id} />
       )}
 
-      {/* Add Category Modal */}
-      <AddCategoryModal
-        isOpen={isAddCategoryOpen}
-        onClose={() => setIsAddCategoryOpen(false)}
-        onCategoryAdded={handleCategoryAdded}
+      {/* Add Year Modal */}
+      <AddYearModal
+        isOpen={isAddYearOpen}
+        onClose={() => setIsAddYearOpen(false)}
         courseId={course.id}
+        onSuccess={handleYearAdded}
       />
     </div>
   );

@@ -42,11 +42,15 @@ async function getS3Stream(s3Key: string): Promise<Readable> {
  * @param res - The Express response to stream the ZIP to
  */
 export async function streamCategoryZip(categoryId: string, res: Response): Promise<void> {
-  // Fetch category with its course and files
+  // Fetch category with its year folder's course and files
   const category = await prisma.category.findUnique({
     where: { id: categoryId },
     include: {
-      course: true,
+      yearFolder: {
+        include: {
+          course: true,
+        },
+      },
       files: {
         select: { filename: true, s3Key: true },
       },
@@ -57,7 +61,7 @@ export async function streamCategoryZip(categoryId: string, res: Response): Prom
     throw new AppError(ErrorCode.VALIDATION_ERROR, 404, 'Category not found');
   }
 
-  const zipFilename = getCategoryZipFilename(category.course.courseNumber, category.name);
+  const zipFilename = getCategoryZipFilename(category.yearFolder.course.courseNumber, category.name);
 
   // Set response headers for ZIP download
   res.setHeader('Content-Type', 'application/zip');
@@ -117,14 +121,18 @@ export async function streamCategoryZip(categoryId: string, res: Response): Prom
  * @param res - The Express response to stream the ZIP to
  */
 export async function streamCourseZip(courseId: string, res: Response): Promise<void> {
-  // Fetch course with all categories and their files
+  // Fetch course with all year folders, categories and their files
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     include: {
-      categories: {
+      yearFolders: {
         include: {
-          files: {
-            select: { filename: true, s3Key: true },
+          categories: {
+            include: {
+              files: {
+                select: { filename: true, s3Key: true },
+              },
+            },
           },
         },
       },
@@ -160,20 +168,22 @@ export async function streamCourseZip(courseId: string, res: Response): Promise<
   // Pipe the archive to the response
   archive.pipe(res);
 
-  // Append files organized by category subdirectory
-  for (const category of course.categories) {
-    for (const file of category.files) {
-      try {
-        const stream = await getS3Stream(file.s3Key);
-        archive.append(stream, { name: `${category.name}/${file.filename}` });
-      } catch {
-        if (!res.headersSent) {
-          archive.abort();
-          throw new AppError(
-            ErrorCode.STORAGE_ERROR,
-            503,
-            'File storage is temporarily unavailable. Please try again.'
-          );
+  // Append files organized by year/category subdirectory
+  for (const yearFolder of course.yearFolders) {
+    for (const category of yearFolder.categories) {
+      for (const file of category.files) {
+        try {
+          const stream = await getS3Stream(file.s3Key);
+          archive.append(stream, { name: `${yearFolder.year}/${category.name}/${file.filename}` });
+        } catch {
+          if (!res.headersSent) {
+            archive.abort();
+            throw new AppError(
+              ErrorCode.STORAGE_ERROR,
+              503,
+              'File storage is temporarily unavailable. Please try again.'
+            );
+          }
         }
       }
     }

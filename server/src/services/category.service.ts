@@ -2,8 +2,8 @@
  * Category service — business logic for category CRUD operations.
  *
  * Provides:
- *  - listCategories(courseId) — returns categories sorted alphabetically by name
- *  - createCategory(courseId, name) — validates, checks uniqueness, creates category
+ *  - listCategories(yearFolderId) — returns categories sorted alphabetically by name
+ *  - createCategory(yearFolderId, name) — validates, checks uniqueness, creates category
  */
 
 import { prisma } from '../config/database.js';
@@ -11,11 +11,11 @@ import { isValidCategoryName } from '../validators/index.js';
 import { AppError, ErrorCode } from '../types/index.js';
 
 /**
- * Returns all categories for a given course, sorted alphabetically by name.
+ * Returns all categories for a given year folder, sorted alphabetically by name.
  */
-export async function listCategories(courseId: string) {
+export async function listCategories(yearFolderId: string) {
   const categories = await prisma.category.findMany({
-    where: { courseId },
+    where: { yearFolderId },
     orderBy: { name: 'asc' },
     select: {
       id: true,
@@ -29,15 +29,15 @@ export async function listCategories(courseId: string) {
 }
 
 /**
- * Creates a new custom category within a course.
+ * Creates a new custom category within a year folder.
  *
  * Validates:
  *  - Category name is non-empty and at most 50 characters
- *  - Category name does not already exist within the same course
+ *  - Category name does not already exist within the same year folder
  *
  * Returns the created category record.
  */
-export async function createCategory(courseId: string, name: string) {
+export async function createCategory(yearFolderId: string, name: string) {
   // Validate category name
   if (!isValidCategoryName(name)) {
     throw new AppError(
@@ -48,10 +48,10 @@ export async function createCategory(courseId: string, name: string) {
     );
   }
 
-  // Check uniqueness within the course
+  // Check uniqueness within the year folder
   const existing = await prisma.category.findUnique({
     where: {
-      courseId_name: { courseId, name },
+      yearFolderId_name: { yearFolderId, name },
     },
   });
 
@@ -59,14 +59,14 @@ export async function createCategory(courseId: string, name: string) {
     throw new AppError(
       ErrorCode.CATEGORY_EXISTS,
       409,
-      'This category already exists in this course'
+      'This category already exists in this year folder'
     );
   }
 
   // Create the category (custom categories are not defaults)
   const category = await prisma.category.create({
     data: {
-      courseId,
+      yearFolderId,
       name,
       isDefault: false,
     },

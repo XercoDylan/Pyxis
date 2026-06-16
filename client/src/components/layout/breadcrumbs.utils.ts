@@ -27,7 +27,7 @@ export const SEGMENT_LABELS: Record<string, string> = {
  * These are structural path parts that don't correspond to actual pages.
  * Their child segments will use the parent's path as a fallback.
  */
-const SKIP_SEGMENTS = new Set(['courses', 'categories', 'files']);
+const SKIP_SEGMENTS = new Set(['courses', 'categories', 'files', 'years']);
 
 /**
  * Generates an array of breadcrumb segments from a route pathname.

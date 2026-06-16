@@ -98,21 +98,31 @@ export async function createCourse(
     );
   }
 
-  // Create course with default categories in a transaction
+  // Create course with a default year folder containing default categories in a transaction
+  const currentYear = new Date().getFullYear();
   const course = await prisma.course.create({
     data: {
       courseNumber,
       courseName,
       createdById,
-      categories: {
-        create: DEFAULT_CATEGORIES.map((name) => ({
-          name,
-          isDefault: true,
-        })),
+      yearFolders: {
+        create: {
+          year: currentYear,
+          categories: {
+            create: DEFAULT_CATEGORIES.map((name) => ({
+              name,
+              isDefault: true,
+            })),
+          },
+        },
       },
     },
     include: {
-      categories: true,
+      yearFolders: {
+        include: {
+          categories: true,
+        },
+      },
       createdBy: {
         select: { name: true },
       },
@@ -123,7 +133,7 @@ export async function createCourse(
 }
 
 /**
- * Returns a course with its categories.
+ * Returns a course with its year folders and categories.
  *
  * @throws AppError VALIDATION_ERROR if course is not found
  */
@@ -131,8 +141,13 @@ export async function getCourseWithCategories(courseId: string) {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     include: {
-      categories: {
-        orderBy: { name: 'asc' },
+      yearFolders: {
+        orderBy: { year: 'desc' },
+        include: {
+          categories: {
+            orderBy: { name: 'asc' },
+          },
+        },
       },
       createdBy: {
         select: { name: true },

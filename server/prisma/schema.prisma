@@ -34,22 +34,37 @@ model Course {
   createdBy   Member   @relation(fields: [createdById], references: [id])
   createdAt   DateTime @default(now()) @map("created_at")
 
-  categories Category[]
+  yearFolders YearFolder[]
 
   @@map("courses")
 }
 
+model YearFolder {
+  id         String   @id @default(uuid())
+  courseId    String   @map("course_id")
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  year       Int
+  isComplete Boolean  @default(false) @map("is_complete")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  categories Category[]
+
+  @@unique([courseId, year])
+  @@index([courseId])
+  @@map("year_folders")
+}
+
 model Category {
-  id        String   @id @default(uuid())
-  courseId   String   @map("course_id")
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  name      String
-  isDefault Boolean  @default(false) @map("is_default")
-  createdAt DateTime @default(now()) @map("created_at")
+  id           String     @id @default(uuid())
+  yearFolderId String     @map("year_folder_id")
+  yearFolder   YearFolder @relation(fields: [yearFolderId], references: [id], onDelete: Cascade)
+  name         String
+  isDefault    Boolean    @default(false) @map("is_default")
+  createdAt    DateTime   @default(now()) @map("created_at")
 
   files File[]
 
-  @@unique([courseId, name])
+  @@unique([yearFolderId, name])
   @@map("categories")
 }
 

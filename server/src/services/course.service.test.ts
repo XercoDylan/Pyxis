@@ -151,16 +151,22 @@ describe('course.service', () => {
         });
     });
 
-    it('creates course with three default categories when valid', async () => {
+    it('creates course with a year folder containing three default categories when valid', async () => {
       mockPrisma.course.findUnique.mockResolvedValue(null);
+      const currentYear = new Date().getFullYear();
       const mockCreated = {
         id: 'new-id',
         courseNumber: '6.042',
         courseName: 'Math for CS',
-        categories: [
-          { name: 'Exams', isDefault: true },
-          { name: 'Problem_Sets', isDefault: true },
-          { name: 'Lectures', isDefault: true },
+        yearFolders: [
+          {
+            year: currentYear,
+            categories: [
+              { name: 'Exams', isDefault: true },
+              { name: 'Problem_Sets', isDefault: true },
+              { name: 'Lectures', isDefault: true },
+            ],
+          },
         ],
       };
       mockPrisma.course.create.mockResolvedValue(mockCreated);
@@ -173,16 +179,25 @@ describe('course.service', () => {
           courseNumber: '6.042',
           courseName: 'Math for CS',
           createdById: 'user-id',
-          categories: {
-            create: [
-              { name: 'Exams', isDefault: true },
-              { name: 'Problem_Sets', isDefault: true },
-              { name: 'Lectures', isDefault: true },
-            ],
+          yearFolders: {
+            create: {
+              year: currentYear,
+              categories: {
+                create: [
+                  { name: 'Exams', isDefault: true },
+                  { name: 'Problem_Sets', isDefault: true },
+                  { name: 'Lectures', isDefault: true },
+                ],
+              },
+            },
           },
         },
         include: {
-          categories: true,
+          yearFolders: {
+            include: {
+              categories: true,
+            },
+          },
           createdBy: {
             select: { name: true },
           },
@@ -192,15 +207,20 @@ describe('course.service', () => {
   });
 
   describe('getCourseWithCategories', () => {
-    it('returns course with categories sorted by name', async () => {
+    it('returns course with year folders and categories sorted by name', async () => {
       const mockCourse = {
         id: 'course-1',
         courseNumber: '6.042',
         courseName: 'Math for CS',
-        categories: [
-          { name: 'Exams', isDefault: true },
-          { name: 'Lectures', isDefault: true },
-          { name: 'Problem_Sets', isDefault: true },
+        yearFolders: [
+          {
+            year: 2024,
+            categories: [
+              { name: 'Exams', isDefault: true },
+              { name: 'Lectures', isDefault: true },
+              { name: 'Problem_Sets', isDefault: true },
+            ],
+          },
         ],
       };
       mockPrisma.course.findUnique.mockResolvedValue(mockCourse);
@@ -211,8 +231,13 @@ describe('course.service', () => {
       expect(mockPrisma.course.findUnique).toHaveBeenCalledWith({
         where: { id: 'course-1' },
         include: {
-          categories: {
-            orderBy: { name: 'asc' },
+          yearFolders: {
+            orderBy: { year: 'desc' },
+            include: {
+              categories: {
+                orderBy: { name: 'asc' },
+              },
+            },
           },
           createdBy: {
             select: { name: true },

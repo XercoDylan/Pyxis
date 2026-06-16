@@ -2,20 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
 
 // Mock external dependencies before importing the module
-vi.mock('../config/saml.js', () => ({
-  passport: {
-    authenticate: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
-    initialize: vi.fn(() => (_req: Request, _res: Response, next: NextFunction) => next()),
-  },
-}));
-
 vi.mock('../config/database.js', () => ({
   prisma: {
-    accessListEntry: {
-      findUnique: vi.fn(),
-    },
     member: {
-      upsert: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -26,19 +17,19 @@ vi.mock('../config/redis.js', () => ({
     get: vi.fn(),
     del: vi.fn(),
   },
-  redis: {
-    set: vi.fn(),
-    get: vi.fn(),
-    del: vi.fn(),
-  },
   SESSION_TTL: 28800,
   SESSION_PREFIX: 'session:',
 }));
 
 import { authRouter } from './auth.routes.js';
-import { prisma } from '../config/database.js';
 import redis from '../config/redis.js';
 import { ErrorCode } from '../types/index.js';
+
+const mockRedis = redis as unknown as {
+  set: ReturnType<typeof vi.fn>;
+  get: ReturnType<typeof vi.fn>;
+  del: ReturnType<typeof vi.fn>;
+};
 
 // Helper to find route handlers registered on the router
 function getRouteHandler(method: string, path: string) {
@@ -51,7 +42,7 @@ function getRouteHandler(method: string, path: string) {
 function createMockRequest(overrides: Partial<Request> = {}): Request {
   return {
     cookies: {},
-    user: undefined,
+    body: {},
     ...overrides,
   } as unknown as Request;
 }
@@ -70,19 +61,12 @@ function createMockResponse() {
 describe('auth.routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.DEV_BYPASS_AUTH;
   });
 
-  describe('GET /auth/login', () => {
-    it('should have a route registered for GET /auth/login', () => {
-      const handlers = getRouteHandler('get', '/auth/login');
-      expect(handlers).toBeDefined();
-      expect(handlers!.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('POST /auth/callback', () => {
-    it('should have a route registered for POST /auth/callback', () => {
-      const handlers = getRouteHandler('post', '/auth/callback');
+  describe('POST /auth/login', () => {
+    it('should have a route registered for POST /auth/login', () => {
+      const handlers = getRouteHandler('post', '/auth/login');
       expect(handlers).toBeDefined();
       expect(handlers!.length).toBeGreaterThan(0);
     });
@@ -103,10 +87,10 @@ describe('auth.routes', () => {
 
       expect(redis.del).toHaveBeenCalledWith('session:test-session-id');
       expect(res.clearCookie).toHaveBeenCalledWith('pyxis_session');
-      expect(res.redirect).toHaveBeenCalledWith('/');
+      expect(res.json).toHaveBeenCalledWith({ message: 'Logged out' });
     });
 
-    it('redirects home even without an active session cookie', async () => {
+    it('returns success even without an active session cookie', async () => {
       const handlers = getRouteHandler('post', '/auth/logout');
       const handler = handlers![handlers!.length - 1].handle;
 
@@ -117,7 +101,7 @@ describe('auth.routes', () => {
       await handler(req, res, next);
 
       expect(redis.del).not.toHaveBeenCalled();
-      expect(res.redirect).toHaveBeenCalledWith('/');
+      expect(res.json).toHaveBeenCalledWith({ message: 'Logged out' });
     });
   });
 
@@ -146,7 +130,7 @@ describe('auth.routes', () => {
       const res = createMockResponse();
       const next = vi.fn();
 
-      (redis.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      mockRedis.get.mockResolvedValue(null);
 
       await handler(req, res, next);
 
@@ -162,7 +146,6 @@ describe('auth.routes', () => {
 
       const sessionData = {
         memberId: 'member-123',
-        kerberos: 'jdoe@mit.edu',
         name: 'John Doe',
         isAdmin: false,
         createdAt: Date.now(),
@@ -172,13 +155,12 @@ describe('auth.routes', () => {
       const res = createMockResponse();
       const next = vi.fn();
 
-      (redis.get as ReturnType<typeof vi.fn>).mockResolvedValue(JSON.stringify(sessionData));
+      mockRedis.get.mockResolvedValue(JSON.stringify(sessionData));
 
       await handler(req, res, next);
 
       expect(res.json).toHaveBeenCalledWith({
         memberId: 'member-123',
-        kerberos: 'jdoe@mit.edu',
         name: 'John Doe',
         isAdmin: false,
       });

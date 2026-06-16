@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { fetchCategoryFiles, PaginatedFilesResponse, downloadCategoryZip } from '../api/files';
 import { useUpload } from '../hooks/useUpload';
 import FileList from '../components/files/FileList';
+import FileSearchBar from '../components/files/FileSearchBar';
 import UploadArea from '../components/files/UploadArea';
 import Pagination from '../components/shared/Pagination';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
@@ -12,6 +13,7 @@ import EmptyState from '../components/shared/EmptyState';
 export default function CategoryPage() {
   const { categoryId } = useParams<{
     courseId: string;
+    yearId: string;
     categoryId: string;
   }>();
 
@@ -19,6 +21,7 @@ export default function CategoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const loadFiles = useCallback(async () => {
     if (!categoryId) return;
@@ -117,14 +120,31 @@ export default function CategoryPage() {
       {data && data.files.length === 0 ? (
         <EmptyState message="No materials have been uploaded to this category" />
       ) : data ? (
-        <>
-          <FileList files={data.files} />
-          <Pagination
-            currentPage={currentPage}
-            totalPages={data.totalPages}
-            onPageChange={handlePageChange}
-          />
-        </>
+        (() => {
+          const filteredFiles = data.files.filter((f) =>
+            f.filename.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+          return (
+            <>
+              <FileSearchBar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                totalFiles={data.files.length}
+                matchedFiles={filteredFiles.length}
+              />
+              {filteredFiles.length === 0 && searchTerm !== '' ? (
+                <EmptyState message="No files match your search" />
+              ) : (
+                <FileList files={filteredFiles} />
+              )}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={data.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          );
+        })()
       ) : null}
     </div>
   );

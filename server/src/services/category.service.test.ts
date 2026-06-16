@@ -41,7 +41,7 @@ describe('category.service', () => {
 
       expect(result).toEqual(mockCategories);
       expect(mockPrisma.category.findMany).toHaveBeenCalledWith({
-        where: { courseId: 'course-123' },
+        where: { yearFolderId: 'course-123' },
         orderBy: { name: 'asc' },
         select: {
           id: true,
@@ -77,7 +77,7 @@ describe('category.service', () => {
       expect(result).toEqual(mockCategory);
       expect(mockPrisma.category.create).toHaveBeenCalledWith({
         data: {
-          courseId: 'course-123',
+          yearFolderId: 'course-123',
           name: 'Quizzes',
           isDefault: false,
         },
@@ -135,7 +135,7 @@ describe('category.service', () => {
 
       expect(mockPrisma.category.findUnique).toHaveBeenCalledWith({
         where: {
-          courseId_name: { courseId: 'course-456', name: 'Notes' },
+          yearFolderId_name: { yearFolderId: 'course-456', name: 'Notes' },
         },
       });
     });

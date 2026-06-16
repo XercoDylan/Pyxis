@@ -9,7 +9,7 @@ import * as fc from 'fast-check';
  * For any valid course number (1–20 characters, non-empty) and valid course name
  * (1–100 characters, non-empty), creating a course should result in a course with
  * exactly three default categories: "Exams", "Problem_Sets", and "Lectures",
- * all with isDefault: true.
+ * all with isDefault: true (created via a year folder).
  */
 
 // Capture the data passed to prisma.course.create
@@ -23,11 +23,12 @@ vi.mock('../config/database.js', () => {
         findUnique: vi.fn(() => Promise.resolve(null)), // No duplicates
         create: vi.fn((args: any) => {
           capturedCreateData = args.data;
-          // Return a mock course with the categories that were requested
-          const categories = (args.data.categories?.create ?? []).map(
+          // Return a mock course with the yearFolders/categories structure
+          const yearFolderCreate = args.data.yearFolders?.create;
+          const categories = (yearFolderCreate?.categories?.create ?? []).map(
             (cat: any, idx: number) => ({
               id: `cat-id-${idx}`,
-              courseId: 'mock-course-id',
+              yearFolderId: 'mock-year-folder-id',
               name: cat.name,
               isDefault: cat.isDefault,
               createdAt: new Date(),
@@ -39,8 +40,14 @@ vi.mock('../config/database.js', () => {
             courseName: args.data.courseName,
             createdById: args.data.createdById,
             createdAt: new Date(),
-            categories,
-            createdBy: { name: 'Test User', kerberos: 'tester@mit.edu' },
+            yearFolders: [
+              {
+                id: 'mock-year-folder-id',
+                year: yearFolderCreate?.year,
+                categories,
+              },
+            ],
+            createdBy: { name: 'Test User' },
           });
         }),
       },
@@ -76,9 +83,11 @@ describe('Property 15: Course creation produces default categories', () => {
 
           const result = await createCourse(courseNumber, courseName, 'mock-member-id');
 
-          // Verify the create call included the categories
+          // Verify the create call included yearFolders with categories
           expect(capturedCreateData).not.toBeNull();
-          const categoriesCreate = capturedCreateData.categories?.create;
+          const yearFolderCreate = capturedCreateData.yearFolders?.create;
+          expect(yearFolderCreate).toBeDefined();
+          const categoriesCreate = yearFolderCreate.categories?.create;
           expect(categoriesCreate).toBeDefined();
           expect(categoriesCreate).toHaveLength(3);
 
@@ -91,8 +100,8 @@ describe('Property 15: Course creation produces default categories', () => {
             expect(cat.isDefault).toBe(true);
           }
 
-          // Also verify the returned result has 3 categories
-          expect(result.categories).toHaveLength(3);
+          // Also verify the returned result has year folders with 3 categories
+          expect(result.yearFolders[0].categories).toHaveLength(3);
         }
       ),
       { numRuns: 100 }

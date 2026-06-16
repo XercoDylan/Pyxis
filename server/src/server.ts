@@ -8,6 +8,7 @@ import { sessionMiddleware } from './middleware/session.js';
 import { authRouter } from './routes/auth.routes.js';
 import { adminRouter } from './routes/admin.routes.js';
 import { courseRouter } from './routes/course.routes.js';
+import { yearFolderRouter } from './routes/yearFolder.routes.js';
 import { categoryRouter } from './routes/category.routes.js';
 import { fileRouter } from './routes/file.routes.js';
 import { statsRouter } from './routes/stats.routes.js';
@@ -44,6 +45,9 @@ app.use(adminRouter);
 
 // Course routes
 app.use(courseRouter);
+
+// Year folder routes
+app.use(yearFolderRouter);
 
 // Category routes
 app.use(categoryRouter);

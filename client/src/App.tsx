@@ -3,6 +3,7 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
 import CoursePage from './pages/CoursePage';
 import CategoryPage from './pages/CategoryPage';
+import YearPage from './pages/YearPage';
 import FileViewerPage from './pages/FileViewerPage';
 import StatsPage from './pages/StatsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -17,7 +18,11 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/courses/:courseId" element={<CoursePage />} />
           <Route
-            path="/courses/:courseId/categories/:categoryId"
+            path="/courses/:courseId/years/:yearId"
+            element={<YearPage />}
+          />
+          <Route
+            path="/courses/:courseId/years/:yearId/categories/:categoryId"
             element={<CategoryPage />}
           />
           <Route path="/files/:fileId" element={<FileViewerPage />} />

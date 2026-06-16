@@ -1,10 +1,10 @@
 /**
- * Category routes for managing material categories within courses.
+ * Category routes for managing material categories within year folders.
  *
  * All routes require authentication (requireAuth).
  *
- * GET  /api/courses/:courseId/categories — List categories for a course (alphabetically)
- * POST /api/courses/:courseId/categories — Create a custom category
+ * GET  /api/years/:yearId/categories — List categories for a year folder (alphabetically)
+ * POST /api/years/:yearId/categories — Create a custom category within a year folder
  */
 
 import { Router, type Request, type Response, type NextFunction } from 'express';
@@ -18,15 +18,15 @@ export const categoryRouter = Router();
 categoryRouter.use(requireAuth);
 
 /**
- * GET /api/courses/:courseId/categories
- * Returns all categories for the specified course, sorted alphabetically.
+ * GET /api/years/:yearId/categories
+ * Returns all categories for the specified year folder, sorted alphabetically.
  */
 categoryRouter.get(
-  '/api/courses/:courseId/categories',
+  '/api/years/:yearId/categories',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { courseId } = req.params;
-      const categories = await listCategories(courseId);
+      const { yearId } = req.params;
+      const categories = await listCategories(yearId);
       res.json({ categories });
     } catch (err) {
       next(err);
@@ -35,16 +35,16 @@ categoryRouter.get(
 );
 
 /**
- * POST /api/courses/:courseId/categories
- * Creates a new custom category within the specified course.
+ * POST /api/years/:yearId/categories
+ * Creates a new custom category within the specified year folder.
  *
  * Body: { name: string }
  */
 categoryRouter.post(
-  '/api/courses/:courseId/categories',
+  '/api/years/:yearId/categories',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { courseId } = req.params;
+      const { yearId } = req.params;
       const { name } = req.body;
 
       if (!name || typeof name !== 'string') {
@@ -57,7 +57,7 @@ categoryRouter.post(
       }
 
       const trimmedName = name.trim();
-      const category = await createCategory(courseId, trimmedName);
+      const category = await createCategory(yearId, trimmedName);
       res.status(201).json({ category });
     } catch (err) {
       next(err);
