@@ -146,6 +146,7 @@ export default function YearPage() {
         <CategoryList
           categories={sortedCategories}
           courseId={courseId!}
+          yearId={yearId!}
         />
       )}
 

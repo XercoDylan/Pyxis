@@ -10,15 +10,16 @@ interface Category {
 interface CategoryListProps {
   categories: Category[];
   courseId: string;
+  yearId: string;
 }
 
-export default function CategoryList({ categories, courseId }: CategoryListProps) {
+export default function CategoryList({ categories, courseId, yearId }: CategoryListProps) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {categories.map((category) => (
         <Link
           key={category.id}
-          to={`/courses/${courseId}/categories/${category.id}`}
+          to={`/courses/${courseId}/years/${yearId}/categories/${category.id}`}
           className="group flex items-center gap-3 rounded-lg border border-neutral-700 bg-primary-800 p-4 hover:border-gold-500 hover:bg-primary-700 transition-colors"
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-600 text-gold-400 group-hover:bg-gold-600 group-hover:text-neutral-100 transition-colors">
